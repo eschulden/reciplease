@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 
 import docx
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT_FOLDER_ID = "1iHpZwhDNF6wzUG-0oQiZjrMRO2ufUtmi"
 LIST_URL = "https://drive.google.com/embeddedfolderview?id={}"
@@ -214,11 +214,7 @@ def parse_docx(data, fallback_title):
     ingredients = fold_empty_groups(ingredients)
     steps = fold_empty_groups(steps)
 
-    image = None
-    for rel in d.part.rels.values():
-        if "image" in rel.reltype and not rel.is_external:
-            image = rel.target_part.blob
-            break
+    image = first_picture(d)
 
     source = next((l for l in links if l.startswith("http")), None)
     return {
@@ -231,14 +227,65 @@ def parse_docx(data, fallback_title):
     }, image
 
 
-def save_images(blob, file_id, img_dir):
-    im = Image.open(io.BytesIO(blob))
-    im = im.convert("RGB")
-    try:
-        from PIL import ImageOps
-        im = ImageOps.exif_transpose(im)
-    except Exception:  # noqa: BLE001
-        pass
+R_EMBED = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
+
+
+def first_picture(d):
+    """The first picture in the document body with how Word displays it: crop, flips and rotation.
+
+    Returns {"blob", "crop": (l, t, r, b) fractions, "rot": degrees clockwise, "flipH", "flipV"} or None.
+    """
+    for pic in d.element.body.xpath(".//pic:pic"):
+        blips = pic.xpath(".//a:blip")
+        rid = blips[0].get(R_EMBED) if blips else None
+        if not rid or rid not in d.part.related_parts:
+            continue
+        crop = (0.0, 0.0, 0.0, 0.0)
+        src = pic.xpath(".//a:srcRect")
+        if src:
+            crop = tuple(int(src[0].get(k) or 0) / 100000 for k in ("l", "t", "r", "b"))
+        xfrm = pic.xpath("./pic:spPr/a:xfrm")
+        x = xfrm[0] if xfrm else None
+        flag = lambda name: x is not None and x.get(name) in ("1", "true")
+        return {
+            "blob": d.part.related_parts[rid].blob,
+            "crop": crop,
+            "rot": (int(x.get("rot") or 0) / 60000) % 360 if x is not None else 0,
+            "flipH": flag("flipH"),
+            "flipV": flag("flipV"),
+        }
+    # Fallback: any embedded image.
+    for rel in d.part.rels.values():
+        if "image" in rel.reltype and not rel.is_external:
+            return {"blob": rel.target_part.blob, "crop": (0, 0, 0, 0), "rot": 0, "flipH": False, "flipV": False}
+    return None
+
+
+def as_displayed(picture):
+    """Apply Word's crop, flips and rotation so the photo looks like it does in the document."""
+    im = Image.open(io.BytesIO(picture["blob"]))
+    im = ImageOps.exif_transpose(im).convert("RGB")
+    l, t, r, b = picture["crop"]
+    if any(picture["crop"]):
+        w, h = im.size
+        box = (max(0, round(w * l)), max(0, round(h * t)), min(w, round(w * (1 - r))), min(h, round(h * (1 - b))))
+        if box[2] > box[0] and box[3] > box[1]:
+            im = im.crop(box)
+    if picture["flipH"]:
+        im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    if picture["flipV"]:
+        im = im.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
+    rot = round(picture["rot"], 2) % 360
+    exact = {90: Image.Transpose.ROTATE_270, 180: Image.Transpose.ROTATE_180, 270: Image.Transpose.ROTATE_90}
+    if rot in exact:  # PIL's ROTATE_n is counter-clockwise; Word's rot is clockwise
+        im = im.transpose(exact[rot])
+    elif rot:
+        im = im.rotate(-rot, expand=True, resample=Image.Resampling.BICUBIC, fillcolor="white")
+    return im
+
+
+def save_images(picture, file_id, img_dir):
+    im = as_displayed(picture)
     out = {}
     for suffix, size in (("", 600), ("-full", 1400)):
         copy = im.copy()
