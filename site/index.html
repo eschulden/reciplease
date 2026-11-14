@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reciplease · מתכונים</title>
+  <meta name="description" content="אוסף המתכונים המשפחתי – חיפוש לפי סוג מנה וכשרות">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍲</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <h1 class="brand"><span aria-hidden="true">🍲</span> Reciplease <small>מתכונים</small></h1>
+      <label class="search">
+        <span class="sr-only">חיפוש מתכון</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+        <input id="q" type="search" placeholder="חיפוש לפי שם או מצרך… (למשל: פטה, דלעת)" autocomplete="off">
+      </label>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="filters" aria-label="סינון">
+      <div class="filter-row">
+        <span class="filter-label">סוג מנה</span>
+        <div class="chips" id="cat-chips" role="radiogroup" aria-label="סוג מנה"></div>
+      </div>
+      <div class="filter-row">
+        <span class="filter-label">כשרות</span>
+        <div class="chips" id="kash-chips" role="radiogroup" aria-label="כשרות"></div>
+      </div>
+    </section>
+
+    <p class="count" id="count" aria-live="polite"></p>
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="empty" hidden>לא נמצאו מתכונים. נסו מילה אחרת או נקו את הסינון.</p>
+  </main>
+
+  <footer class="wrap foot" id="foot"></footer>
+
+  <dialog id="recipe" aria-labelledby="r-title">
+    <article class="recipe">
+      <button class="close" id="close" aria-label="סגירה">✕</button>
+      <div class="r-photo" id="r-photo"></div>
+      <div class="r-body">
+        <div class="badges" id="r-badges"></div>
+        <h2 id="r-title"></h2>
+        <div id="r-content"></div>
+        <div class="r-links" id="r-links"></div>
+      </div>
+    </article>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

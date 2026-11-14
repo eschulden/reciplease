@@ -1,0 +1,4 @@
+site/data/
+site/img/
+.cache/
+__pycache__/
