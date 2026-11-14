@@ -8,7 +8,9 @@
   const dlg = $("recipe");
 
   let recipes = [];
-  const state = { q: "", cat: ALL, kash: ALL };
+  // cats: selected dish types (empty = all).
+  // kash: Map of kashrut -> "in" | "out" (first press includes it, the second excludes it, the third clears it).
+  const state = { q: "", cats: new Set(), kash: new Map() };
 
   // Normalise Hebrew text for search: drop niqqud/punctuation, unify final letters and quotes.
   const FINALS = { "ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ" };
@@ -30,24 +32,30 @@
 
   function readHash() {
     const p = new URLSearchParams(location.hash.slice(1));
+    const list = (key) => (p.get(key) || "").split(",").map((s) => s.trim()).filter(Boolean);
     state.q = p.get("q") || "";
-    state.cat = p.get("cat") || ALL;
-    state.kash = p.get("k") || ALL;
+    state.cats = new Set(list("cat"));
+    state.kash = new Map(list("k").map((v) => (v.startsWith("!") ? [v.slice(1), "out"] : [v, "in"])));
     return p.get("r");
   }
   function writeHash(recipeId) {
     const p = new URLSearchParams();
     if (state.q) p.set("q", state.q);
-    if (state.cat) p.set("cat", state.cat);
-    if (state.kash) p.set("k", state.kash);
+    if (state.cats.size) p.set("cat", [...state.cats].join(","));
+    if (state.kash.size) p.set("k", [...state.kash].map(([v, m]) => (m === "out" ? "!" : "") + v).join(","));
     if (recipeId) p.set("r", recipeId);
     const h = p.toString();
     history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
   }
 
   function matches(r, { ignoreCat = false, ignoreKash = false } = {}) {
-    if (!ignoreCat && state.cat && r.category !== state.cat) return false;
-    if (!ignoreKash && state.kash && r.kashrut !== state.kash) return false;
+    if (!ignoreCat && state.cats.size && !state.cats.has(r.category)) return false;
+    if (!ignoreKash && state.kash.size) {
+      const mode = state.kash.get(r.kashrut);
+      if (mode === "out") return false;
+      const anyIn = [...state.kash.values()].includes("in");
+      if (anyIn && mode !== "in") return false;
+    }
     if (state.q) {
       const words = norm(state.q).split(" ").filter(Boolean);
       return words.every((w) => r._title.includes(w)) || words.every((w) => r._all.includes(w));
@@ -55,19 +63,56 @@
     return true;
   }
 
-  function chips(el, values, key, allLabel, ignore) {
+  function countBy(key, ignore) {
     const counts = {};
     recipes.filter((r) => matches(r, ignore)).forEach((r) => { counts[r[key]] = (counts[r[key]] || 0) + 1; });
+    return counts;
+  }
+  const chip = (v, label, n, attrs, cls = "") =>
+    `<button class="chip ${cls}" data-v="${esc(v)}" ${attrs}>${esc(label)}${n === null ? "" : `<span class="n">${n}</span>`}</button>`;
+
+  // Dish type: several can be on at once; "כל המנות" clears the selection.
+  function catChips(el, values) {
+    const counts = countBy("category", { ignoreCat: true });
     const total = Object.values(counts).reduce((a, b) => a + b, 0);
-    const stateKey = key === "category" ? "cat" : "kash";
-    el.innerHTML = [[ALL, allLabel, total], ...values.map((v) => [v, v, counts[v] || 0])]
-      .map(([v, label, n]) =>
-        `<button class="chip" role="radio" aria-checked="${state[stateKey] === v}" data-v="${esc(v)}">${esc(label)}<span class="n">${n}</span></button>`)
-      .join("");
+    el.innerHTML =
+      chip(ALL, "כל המנות", total, `role="checkbox" aria-checked="${state.cats.size === 0}"`) +
+      values.map((v) => chip(v, v, counts[v] || 0, `role="checkbox" aria-checked="${state.cats.has(v)}"`)).join("");
     el.onclick = (e) => {
       const b = e.target.closest(".chip");
       if (!b) return;
-      state[stateKey] = b.dataset.v;
+      const v = b.dataset.v;
+      if (v === ALL) state.cats.clear();
+      else if (state.cats.has(v)) state.cats.delete(v);
+      else state.cats.add(v);
+      render();
+    };
+  }
+
+  // Kashrut: each press cycles off -> include -> exclude ("לא …", red) -> off; "הכל" clears.
+  function kashChips(el, values) {
+    const counts = countBy("kashrut", { ignoreKash: true });
+    const total = Object.values(counts).reduce((a, b) => a + b, 0);
+    el.innerHTML =
+      chip(ALL, "הכל", total, `aria-pressed="${state.kash.size === 0}"`) +
+      values.map((v) => {
+        const mode = state.kash.get(v);
+        const label = mode === "out" ? `לא ${v}` : v;
+        const title = mode === "out" ? "לחיצה נוספת תבטל" : mode === "in" ? "לחיצה נוספת: ללא " + v : "";
+        return chip(v, label, mode === "out" ? null : counts[v] || 0,
+          `aria-pressed="${mode ? "true" : "false"}" title="${esc(title)}"`, mode === "out" ? "not" : "");
+      }).join("");
+    el.onclick = (e) => {
+      const b = e.target.closest(".chip");
+      if (!b) return;
+      const v = b.dataset.v;
+      if (v === ALL) state.kash.clear();
+      else {
+        const mode = state.kash.get(v);
+        if (!mode) state.kash.set(v, "in");
+        else if (mode === "in") state.kash.set(v, "out");
+        else state.kash.delete(v);
+      }
       render();
     };
   }
@@ -91,8 +136,8 @@
   function render() {
     const cats = [...new Set(recipes.map((r) => r.category).filter(Boolean))].sort(sortBy(CAT_ORDER));
     const kashes = [...new Set(recipes.map((r) => r.kashrut).filter(Boolean))].sort(sortBy(KASH_ORDER));
-    chips($("cat-chips"), cats, "category", "כל המנות", { ignoreCat: true });
-    chips($("kash-chips"), kashes, "kashrut", "הכל", { ignoreKash: true });
+    catChips($("cat-chips"), cats);
+    kashChips($("kash-chips"), kashes);
 
     const list = recipes.filter((r) => matches(r));
     grid.innerHTML = list.map(card).join("");

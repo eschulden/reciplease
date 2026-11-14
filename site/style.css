@@ -12,6 +12,7 @@
   --dairy: #1f63b5;  --dairy-bg: #e5effb;
   --parve: #2e7d4f;  --parve-bg: #e5f4ea;
   --radius: 14px;
+  --danger: #c62828;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -28,6 +29,7 @@
     --meat: #f19b92;   --meat-bg: #3a2220;
     --dairy: #8fbcf2;  --dairy-bg: #1d2c40;
     --parve: #8fd3a8;  --parve-bg: #1c3226;
+    --danger: #ff8a80;
     color-scheme: dark;
   }
 }
@@ -80,7 +82,11 @@ body {
   transition: background .15s, border-color .15s;
 }
 .chip:hover { border-color: var(--brand); }
-.chip[aria-checked="true"] { background: var(--brand); border-color: var(--brand); color: var(--surface); }
+.chip[aria-checked="true"], .chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--surface); }
+.chip.not[aria-pressed="true"] {
+  background: var(--meat-bg); border-color: var(--danger); color: var(--danger); font-weight: 500;
+}
+.chip.not::before { content: "✕"; margin-inline-end: 6px; }
 .chip .n { opacity: .65; font-size: .8em; margin-inline-start: 4px; }
 
 .count { color: var(--muted); font-size: .9rem; margin: 16px 0 10px; }
