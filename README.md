@@ -3,7 +3,7 @@
 A searchable website for the family recipe collection that lives in Google Drive
 ([מתכונים folder](https://drive.google.com/drive/folders/1iHpZwhDNF6wzUG-0oQiZjrMRO2ufUtmi)).
 
-**Live site:** https://eyals-sys.github.io/reciplease/
+**Live site:** https://eschulden.github.io/reciplease/
 
 ## How it works
 
