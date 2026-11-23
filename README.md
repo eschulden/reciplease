@@ -17,6 +17,14 @@ A searchable website for the family recipe collection that lives in Google Drive
 Generated data is not committed. Every run rebuilds it from Drive, so recipes that are added, edited,
 moved or deleted on Drive show up on the site after the next run.
 
+## Menu and grocery list
+
+Press **＋** on a recipe card, or **הוספה לתפריט** inside a recipe, to add it to the menu. **🛒 התפריט שלי**
+shows the chosen dishes and a grocery list. The list can be merged (each item once, with the amount from
+each dish, and pantry basics like salt and oil in their own section) or shown by dish. You can tick items
+off, copy the list, send it on WhatsApp, or share a link that adds the same dishes to someone else's
+menu. The menu is saved in the browser on that device.
+
 ## Adding recipes
 
 Drop a `.docx` (or Google Doc) into the right subfolder on Drive. Subfolders are named

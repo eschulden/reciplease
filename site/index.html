@@ -20,6 +20,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
         <input id="q" type="search" placeholder="חיפוש לפי שם או מצרך… (למשל: פטה, דלעת)" autocomplete="off">
       </label>
+      <button class="menu-btn" id="menu-btn" type="button">🛒 התפריט שלי <span class="menu-n" id="menu-n" hidden></span></button>
     </div>
   </header>
 
@@ -51,6 +52,36 @@
         <h2 id="r-title"></h2>
         <div id="r-content"></div>
         <div class="r-links" id="r-links"></div>
+      </div>
+    </article>
+  </dialog>
+
+  <dialog id="menu" aria-labelledby="m-title">
+    <article class="menu-panel">
+      <button class="close" id="m-close" aria-label="סגירה">✕</button>
+      <div class="r-body">
+        <h2 id="m-title">🛒 התפריט שלי</h2>
+        <p class="m-hint" id="m-empty">התפריט ריק. לחצו על <b>＋</b> בכרטיס של מתכון כדי להוסיף אותו.</p>
+        <ul class="m-dishes" id="m-dishes"></ul>
+        <div id="m-groceries" hidden>
+          <div class="m-head">
+            <h3>רשימת קניות</h3>
+            <div class="seg" role="group" aria-label="תצוגת הרשימה">
+              <button type="button" data-view="merged">מאוחדת</button>
+              <button type="button" data-view="dish">לפי מנה</button>
+            </div>
+          </div>
+          <p class="m-hint">סמנו מה כבר יש לכם או מה שכבר נקנה.</p>
+          <div id="m-list"></div>
+          <div class="r-links m-actions">
+            <button type="button" id="m-copy">📋 העתקת הרשימה</button>
+            <a id="m-wa" target="_blank" rel="noopener">💬 שליחה ב-WhatsApp</a>
+            <button type="button" id="m-share">🔗 קישור לתפריט</button>
+            <button type="button" id="m-uncheck">↺ ביטול הסימונים</button>
+            <button type="button" id="m-clear" class="danger">🗑 ריקון התפריט</button>
+          </div>
+          <p class="m-hint" id="m-status" aria-live="polite"></p>
+        </div>
       </div>
     </article>
   </dialog>
